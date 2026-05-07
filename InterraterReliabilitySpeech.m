@@ -1,0 +1,44 @@
+clear
+close all
+
+%% Example Input: ratings from 3 raters
+R1 = [0 1 1 0 1 0 1 1 1 1 1 1 1];
+R2 = [1 1 1 0 1 0 1 0 1 0 1 1 1];
+R3 = [0 0 0 0 1 0 0 0 1 1 0 0 1];
+R4 = [0 0 0 1 0 1 1 1 0 1 1 1 0];
+
+ratings = [R1' R2' R3' R4'];   % N × m matrix
+
+%% Convert to Fleiss matrix (counts per category per item)
+
+categories = unique(ratings);
+k = length(categories);
+N = size(ratings,1);
+m = size(ratings,2);
+
+M = zeros(N,k);
+
+for i = 1:N
+    for j = 1:m
+        cat_index = find(categories == ratings(i,j));
+        M(i,cat_index) = M(i,cat_index) + 1;
+    end
+end
+
+%% Compute Fleiss Kappa
+
+n = sum(M,2);  % number of ratings per item (should be 3)
+
+% Agreement per item
+P = (sum(M.^2,2) - n) ./ (n.*(n-1));
+
+Pbar = mean(P);
+
+% Category proportions
+p = sum(M) ./ (N*m);
+
+Pe = sum(p.^2);
+
+kappa = (Pbar - Pe) / (1 - Pe);
+
+fprintf("Fleiss' Kappa (4 raters): %.3f\n", kappa);
