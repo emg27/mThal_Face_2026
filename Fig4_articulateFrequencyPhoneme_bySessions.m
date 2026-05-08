@@ -3,13 +3,42 @@ close all
 
 %% Load the data
 sessions = {'20220824' '20220825' '20220826' '20220911' '20220914' '20220919' '20220923' '20230630'};
+%sessions = {'20230630' '20241204'};
 
-load('P:\projects\human\VOP STIM\DATA\Chronic_DBS\BP\Speech Assessment\Phoneme\phoneme_presenceCheck.mat')
+%load('P:\projects\human\VOP STIM\DATA\Chronic_DBS\BP\Speech Assessment\Phoneme\phoneme_presenceCheck.mat')
+%load('/Volumes/rnelshare/projects/human/VOP STIM/DATA/Chronic_DBS/BP/Speech Assessment/Phoneme/phoneme_presenceCheck_2024.mat')
 
+load("/Users/zira/Data/mThal_NatComm_2026/phoneme_presenceCheck_TBI01_sessions.mat")
+%load("/Users/zira/Data/mThal_NatComm_2026/phoneme_presenceCheck_complete.mat")
+sessions = unique({phonDat.dataset});
 %% Collect all the phoneme data
 inclStress = 0;
 iPA = 1;
 
+% % Determine total number of phonemes
+allUniPhons = [];
+for s = 1:length(sessions)
+    phones = [];
+    for n = 1:size(phonDat,2)
+        if contains(phonDat(n).dataset, sessions(s))
+            phones = [phones; phonDat(n).phoneme(:)];
+        end
+    end
+
+    % Identify all the unique phonemes
+    if ~inclStress
+        for n = 1:size(phones,1)
+            phones(n).phon_wStress = phones(n).phon;
+            if contains(phones(n).phon,{'0','1','2','3'})
+                phones(n).phon{:} = phones(n).phon{:}(1:end-1);
+            end
+        end
+    end
+
+    allUniPhons(s) = numel(unique([phones.phon]));
+end
+
+LabelAll =repmat({''},max(allUniPhons),numel(sessions));
 % By Sessions
 for s = 1:length(sessions)
     phones = [];
@@ -34,6 +63,14 @@ for s = 1:length(sessions)
     if iPA
         for i = 1:length(uniPhon)
             Label{i} = arpa2ipa(uniPhon{i});
+            LabelAll{i,s} = uniPhon{i};
+        end
+    end
+
+    % Double check that none of the valids are characters
+    for i = 1:numel(phones)
+        if ischar(phones(i).valid)
+            phones(i).valid = str2num(phones(i).valid);
         end
     end
 
@@ -50,8 +87,8 @@ for s = 1:length(sessions)
    
 
     % Iterate through each word and condition
-    close all
-    diffCond = {'55Hz' '130Hz'};
+    %close all
+    diffCond = {'No Stim','55Hz'};%{'55Hz' '130Hz'};
     figure('Position',[1 49 1920 1075])
     [xNum,yNum] = optSubplotLayout(size(Label,2));
     for n = 1:size(Label,2)
@@ -61,7 +98,7 @@ for s = 1:length(sessions)
         for k = 1:3
             mask = idxPhon' == n & idxCond == k;
             bin(k,:) = histcounts([phones(mask==1).valid],[0 1 2 10])/sum(mask);
-            % hold on
+            hold on
             %histogram([phones(mask==1).valid],'BinWidth',1)
         end
         % Reorder the bin data to be Present, Replaced, Absent
@@ -70,8 +107,9 @@ for s = 1:length(sessions)
         diff50 = bin(2,1) - bin(1,1); %Changes 55Hz vs. nostim
         diff130 = bin(3,1) - bin(1,1); %Changes 130Hz vs. nostim
         diff = [diff50 diff130];
-        diffVal{n} = diff;
-        diffVal = diffVal';
+        diffVal{n,s} = diff';
+        %diffVal = diffVal';
+        binVal{n,s} = bin'; % Flipped the order to make it easier to read the material
 
         subplot(xNum,yNum,n)
         bar(diff,'stacked')
@@ -86,22 +124,39 @@ for s = 1:length(sessions)
     linkaxes
 end
 
-%% Save Figure
+%% Identify the position of the consonant phoneme based on location in the mouth
+tPhon = {'P','B','M','W','F','V','TH','DH','T','D','S','Z','N','L','R','CH','SH','ZH','Y','K','G','NG','HH'};
 
-figFolder = 'P:\projects\human\VOP STIM\DATA\Chronic_DBS\BP\Speech Assessment\Phoneme\Figures\';
-freqIdx = [1 3 5 7 9 11 13 15];
-hisIdx = [2 4 6 8 10 12 14 16];
+% Iterate through each trace
 
-for s = 1:length(sessions)
-    F(s) = figure(freqIdx(s));
-    F(s).Name = sprintf('%s_freq', sessions{s});
-    G(s) = figure(hisIdx(s));
-    G(s).Name = sprintf('%s_presence', sessions{s});
+for n = 1:numel(tPhon)
+    mask = ismember(LabelAll,tPhon(n));
+    b = diffVal(mask==1);
+    b2=[b{:}];
+    diffPres{n} = b2(1,:);
+    c = binVal(mask==1);
+    c2 = [c{:}];
+    binPres{n} = c;
 end
 
- saveFigurePDF(G, [figFolder])
-% saveFigurePDF(F, [figFolder])
-% %saveas(G, [figFolder '\' sessions{s} '.fig'])
+diffPres = [tPhon; diffPres];
+
+% %% Save Figure
+% 
+% figFolder = 'P:\projects\human\VOP STIM\DATA\Chronic_DBS\BP\Speech Assessment\Phoneme\Figures\';
+% freqIdx = [1 3 5 7 9 11 13 15];
+% hisIdx = [2 4 6 8 10 12 14 16];
+% 
+% for s = 1:length(sessions)
+%     F(s) = figure(freqIdx(s));
+%     F(s).Name = sprintf('%s_freq', sessions{s});
+%     G(s) = figure(hisIdx(s));
+%     G(s).Name = sprintf('%s_presence', sessions{s});
+% end
+% 
+%  saveFigurePDF(G, [figFolder])
+% % saveFigurePDF(F, [figFolder])
+% % %saveas(G, [figFolder '\' sessions{s} '.fig'])
 
 %% Functions
 function [ipa] = arpa2ipa(phone)
