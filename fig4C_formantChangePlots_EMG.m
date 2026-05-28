@@ -31,8 +31,9 @@
 clear all; %close all
 %load('allCutVowelPhonemes_Subject001+Subject004_20240319.mat');
 %load('D:\RNEL\analysis\allCutVowelPhonemes_Subject001_20230630_20241204.mat');
-load("/Users/zira/Library/CloudStorage/Dropbox/PostDoc/ElviraMarco/One-on-One/20241121/datPhoneme_allVowels_20240319.mat")
-dat_vowelPhoneme = dat_vowelPhoneme_OG;
+%load("/Users/zira/Library/CloudStorage/Dropbox/PostDoc/ElviraMarco/One-on-One/20241121/datPhoneme_allVowels_20240319.mat")
+%dat_vowelPhoneme = dat_vowelPhoneme_OG;
+load("/Users/zira/Data/mThal_NatComm_2026/Fig4_C_formantData.mat")
 
 % Next, need to choose ON condition (not always 55Hz)
 onCond = "55Hz";
